@@ -1,18 +1,42 @@
---- Узнаём всех клиентов сервиса
+--Обзорный запрос с атрибутами
+SELECT * FROM logs.service_logs WHERE resources_string_value[1] = '/srv/resume-views/var/log/requests.slog' LIMIT 1
+UNION ALL SELECT * FROM logs.service_logs WHERE resources_string_value[1] = '/srv/resume-views/var/log/service.slog' LIMIT 1;
+
+---Узнаём всех клиентов сервиса
 SELECT attributes_string_value[1], COUNT(*)
 FROM logs.service_logs
 WHERE service = 'resume-views'
   AND resources_string_value[1] = '/srv/resume-views/var/log/requests.slog'
 GROUP BY 1 ORDER BY 2 DESC;
 
+--Когда идет нагрузочное тестирование?
+SELECT date_trunc('hour', timestamp), count(*)
+FROM logs.service_logs
+WHERE service = 'resume-views'
+  AND resources_string_value[1] = '/srv/resume-views/var/log/requests.slog'
+  AND attributes_string_value[1] = 'load-testing'
+GROUP BY 1;
+
 --Какие запросы подаются при нагрузочном тестировании?
 SELECT body, COUNT(*)
 FROM logs.service_logs
 WHERE service = 'resume-views'
   AND resources_string_value[1] = '/srv/resume-views/var/log/requests.slog'
-  AND TIMESTAMP >= '2024-09-04 00:00:00' AND TIMESTAMP < '2024-09-05 00:00:00'
+  AND timestamp >= '2024-09-04 00:00:00' AND timestamp < '2024-09-05 00:00:00'
   AND attributes_string_value[1] = 'load-testing'
 GROUP BY 1;
+
+--Смотрим на все ошибки
+SELECT *
+FROM logs.service_logs
+WHERE service = 'resume-views'
+  AND timestamp >= '2024-09-02 00:00:00' AND timestamp < '2024-09-03 00:00:00'
+  AND (
+    LOWER(body) LIKE '%except%'
+    OR LOWER(body) LIKE '%error%'
+    OR severity_text = 'ERROR'
+    OR severity_text = 'WARN'
+  );
 
 --Группируем ошибки
 SELECT multiIf(body LIKE '%rs/resume/short/%', '1 - запросы в xmlback, rs/resume/short/',
@@ -30,7 +54,7 @@ SELECT multiIf(body LIKE '%rs/resume/short/%', '1 - запросы в xmlback, r
        COUNT(*)
 FROM logs.service_logs
 WHERE service = 'resume-views'
-  AND TIMESTAMP >= '2024-09-02 00:00:00' AND TIMESTAMP < '2024-09-03 00:00:00'
+  AND timestamp >= '2024-09-02 00:00:00' AND timestamp < '2024-09-03 00:00:00'
   AND (
     LOWER(body) LIKE '%except%'
     OR LOWER(body) LIKE '%error%'
@@ -40,10 +64,10 @@ WHERE service = 'resume-views'
 GROUP BY 1 ORDER BY 1;
 
 --Ошибки группы 1 (запросы)
-SELECT date_trunc('minute', TIMESTAMP), COUNT(*)
+SELECT date_trunc('minute', timestamp), COUNT(*)
 FROM logs.service_logs
 WHERE service = 'resume-views'
-  AND TIMESTAMP >= '2024-09-04 00:00:00' AND TIMESTAMP < '2024-09-05 00:00:00'
+  AND timestamp >= '2024-09-04 00:00:00' AND timestamp < '2024-09-05 00:00:00'
   AND (
     body LIKE '%rs/resume/short/%'
     OR body LIKE '%rs/resume/identifiers%'
@@ -53,10 +77,10 @@ WHERE service = 'resume-views'
 GROUP BY 1 ORDER BY 2 DESC;
 
 --Распределение ошибок БД по минутам
-SELECT date_trunc('minute', TIMESTAMP), COUNT(*)
+SELECT date_trunc('minute', timestamp), COUNT(*)
 FROM logs.service_logs
 WHERE service = 'resume-views'
-  AND TIMESTAMP >= '2024-09-02 00:00:00' AND TIMESTAMP < '2024-09-03 00:00:00'
+  AND timestamp >= '2024-09-02 00:00:00' AND timestamp < '2024-09-03 00:00:00'
   AND (
     body LIKE '%connection usage duration exceeded%'
     OR body LIKE '%Connection is not available, request timed out after%'
@@ -76,7 +100,7 @@ SELECT multiIf(body LIKE '%select rvh.resume_id as resumeId,%' OR body LIKE '%ge
        COUNT(*)
 FROM logs.service_logs
 WHERE service = 'resume-views'
-  AND TIMESTAMP >= '2024-09-02 12:00:00' AND TIMESTAMP < '2024-09-02 14:00:00'
+  AND timestamp >= '2024-09-02 12:00:00' AND timestamp < '2024-09-02 14:00:00'
   AND (body LIKE '%connection usage duration exceeded%' OR body LIKE '%JDBC exception executing SQL%')
 GROUP BY 1 ORDER BY 2 DESC;
 
@@ -85,7 +109,7 @@ SELECT body, COUNT(*)
 FROM logs.service_logs
 WHERE service = 'resume-views'
   AND resources_string_value[1] = '/srv/resume-views/var/log/requests.slog'
-  AND TIMESTAMP >= '2024-09-02 00:00:00' AND TIMESTAMP < '2024-09-03 00:00:00'
+  AND timestamp >= '2024-09-02 00:00:00' AND timestamp < '2024-09-03 00:00:00'
   AND attributes_int64_value[3] IN (500, 502, 502)
 GROUP BY 1 ORDER BY 2 DESC;
 
@@ -95,5 +119,5 @@ SELECT attributes_int64_value[3], COUNT(*)
 FROM logs.service_logs
 WHERE service = 'resume-views'
   AND resources_string_value[1] = '/srv/resume-views/var/log/requests.slog'
-  AND TIMESTAMP >= '2024-09-02 00:00:00' AND TIMESTAMP < '2024-09-03 00:00:00'
+  AND timestamp >= '2024-09-02 00:00:00' AND timestamp < '2024-09-03 00:00:00'
 GROUP BY 1 ORDER BY 2 DESC;
