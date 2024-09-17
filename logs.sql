@@ -67,7 +67,7 @@ GROUP BY 1 ORDER BY 1;
 SELECT date_trunc('minute', timestamp), COUNT(*)
 FROM logs.service_logs
 WHERE service = 'resume-views'
-  AND timestamp >= '2024-09-04 00:00:00' AND timestamp < '2024-09-05 00:00:00'
+  AND timestamp >= '2024-09-02 00:00:00' AND timestamp < '2024-09-03 00:00:00'
   AND (
     body LIKE '%rs/resume/short/%'
     OR body LIKE '%rs/resume/identifiers%'
