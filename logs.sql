@@ -1,3 +1,5 @@
+CREATE FUNCTION jlog AS (x) -> arrayJoin(splitByString('\\n', replaceAll(x, '\\t', '    ')));
+
 --Обзорный запрос с атрибутами
 SELECT * FROM logs.service_logs WHERE resources_string_value[1] = '/srv/resume-views/var/log/requests.slog' LIMIT 1
 UNION ALL SELECT * FROM logs.service_logs WHERE resources_string_value[1] = '/srv/resume-views/var/log/service.slog' LIMIT 1;
@@ -87,6 +89,13 @@ WHERE service = 'resume-views'
     OR body LIKE '%JDBC exception executing SQL%'
   )
 GROUP BY 1 ORDER BY 1;
+
+--Ошибки группы 3 (БД)
+SELECT jlog(body)
+FROM logs.service_logs
+WHERE service = 'resume-views'
+  AND timestamp >= '2024-09-02 12:00:00' AND timestamp < '2024-09-02 14:00:00'
+  AND (body LIKE '%connection usage duration exceeded%' OR body LIKE '%JDBC exception executing SQL%');
 
 --Группировка ошибок БД
 SELECT multiIf(body LIKE '%select rvh.resume_id as resumeId,%' OR body LIKE '%getResumeViews(ResumeViewsDao.java:144)%', 'getResumeViews(ResumeViewsDao.java:144)',
